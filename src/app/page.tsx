@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import GameCard from "@/components/GameCard";
 import { HeroSection } from "@/components/HeroSection";
 import { getGames } from '@/utils/apiFonctions';
@@ -12,33 +12,42 @@ export default function Home() {
   const [games, setGames] = useState<Game[]>(cachedGames || []);
   const [isError, setIsError] = useState(false);
   const [isLoading, setIsLoading] = useState(!cachedGames);
+  const hasFetchedRef = useRef(false);
+
+  const fetchGames = useCallback(async () => {
+
+    if (cachedGames && !hasFetchedRef.current) {
+      setGames(cachedGames);
+      setIsLoading(false);
+      hasFetchedRef.current = true;
+      return;
+    }
+
+    try {
+      const response = await getGames(etag);
+
+      if (response.notModified && cachedGames) {
+        setGames(cachedGames);
+        return;
+      }
+      if (!response.notModified && response.data) {
+        updateCache(response.data, response.etag || '');
+        setGames(response.data);
+      }
+    } catch (error) {
+      setIsError(true);
+      console.error('Erreur lors de la récupération des jeux:', error);
+    } finally {
+      setIsLoading(false);
+      hasFetchedRef.current = true;
+    }
+  }, [cachedGames, etag, updateCache]);
 
   useEffect(() => {
-    const fetchGames = async () => {
-      try {
-        const response = await getGames(etag);
-
-        // Si les données n'ont pas été modifiées et qu'on a des données en cache
-        if (response.notModified && cachedGames) {
-          setGames(cachedGames);
-          return;
-        }
-
-        // Si on a de nouvelles données
-        if (!response.notModified && response.data) {
-          updateCache(response.data, response.etag || '');
-          setGames(response.data);
-        }
-      } catch (error) {
-        setIsError(true);
-        console.error('Erreur lors de la récupération des jeux:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchGames();
-  }, [etag, cachedGames, updateCache]);
+    if (!hasFetchedRef.current) {
+      fetchGames();
+    }
+  }, [fetchGames]);
 
   if (isLoading) {
     return (
