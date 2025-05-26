@@ -21,7 +21,7 @@ export const Login = () => {
         setIsLoading(true);
 
         try {
-            const response = isLogin
+            let response = isLogin
                 ? await login(username, password)
                 : await register(username, password);
 
@@ -29,6 +29,16 @@ export const Login = () => {
                 setError(response.error);
                 return;
             }
+
+            if (!isLogin && response.message === 'User created successfully') {
+                const loginResponse = await login(username, password);
+                if (loginResponse.error) {
+                    setError(loginResponse.error);
+                    return;
+                }
+                response = loginResponse;
+            }
+
             if (!response.user || !response.token) {
                 setError('Données de connexion invalides');
                 return;
