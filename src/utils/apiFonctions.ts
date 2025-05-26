@@ -171,3 +171,28 @@ export const deleteUser = async (id: string, token: string) => {
         return { error: 'Une erreur est survenue lors de la suppression de l\'utilisateur' };
     }
 };
+
+export const promoteUser = async (id: string, token: string) => {
+    try {
+        const response = await fetch(`${API_URL}/api/admin/users/${id}/promote`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+        const data = await response.json();
+        if (!response.ok) {
+            console.error('Erreur promotion:', data);
+            return {
+                error: data.message || 'Une erreur est survenue lors de la promotion de l\'utilisateur'
+            };
+        }
+        return data;
+    } catch (error) {
+        console.error('Erreur promotion:', error);
+        return {
+            error: 'Une erreur est survenue lors de la promotion de l\'utilisateur'
+        };
+    }
+};

@@ -14,25 +14,25 @@ export default function AdminPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [isError, setIsError] = useState(false);
 
-    useEffect(() => {
-        const fetchUsers = async () => {
-            if (authLoading || !token) return;
-            if (!user?.is_admin) {
-                router.push('/');
-                return;
-            }
-            try {
-                setIsLoading(true);
-                const users = await getUsers(token);
-                setUsers(users);
-                setIsError(false);
-            } catch (error) {
-                setIsError(true);
-            } finally {
-                setIsLoading(false);
-            }
-        };
+    const fetchUsers = async () => {
+        if (authLoading || !token) return;
+        if (!user?.is_admin) {
+            router.push('/');
+            return;
+        }
+        try {
+            setIsLoading(true);
+            const users = await getUsers(token);
+            setUsers(users);
+            setIsError(false);
+        } catch (error) {
+            setIsError(true);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
+    useEffect(() => {
         fetchUsers();
     }, [token, user?.is_admin, authLoading, router]);
 
@@ -68,7 +68,11 @@ export default function AdminPage() {
                         <h2 className="text-2xl font-bold text-[#64ffda] mb-6">Liste des utilisateurs</h2>
                         <div className="space-y-4">
                             {users.map((user) => (
-                                <UserCard key={user.id} user={user} />
+                                <UserCard
+                                    key={user.id}
+                                    user={user}
+                                    onUserUpdate={fetchUsers}
+                                />
                             ))}
                         </div>
                     </div>
