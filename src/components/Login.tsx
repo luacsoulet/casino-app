@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/store/AuthStore';
 import { useUserBalanceStore } from '@/store/UserStore';
-import { login, register } from '../utils/apiFonctions';
+import { useLogin, useRegister } from '../utils/apiFonctions';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 
@@ -13,51 +13,60 @@ export const Login = () => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
+
+    const { data: loginData, error: loginError, isLoading: loginLoading, login } = useLogin();
+    const { data: registerData, error: registerError, isLoading: registerLoading, register } = useRegister();
+
+    const isLoading = loginLoading || registerLoading;
+    const currentError = loginError || registerError;
+
+    useEffect(() => {
+        if (loginData && loginData.user && loginData.token && !loginError) {
+
+
+            const convertToAdmin = (value: any): boolean => {
+                if (value === true || value === 1 || value === "1" || value === "true") return true;
+                return false;
+            };
+
+            const userData = {
+                id: String(loginData.user.id),
+                username: loginData.user.username,
+                virtual_balance: loginData.user.virtual_balance,
+                is_admin: convertToAdmin(loginData.user.isAdmin),
+                created_at: new Date().toISOString(),
+                token: loginData.token
+            };
+
+            authLogin(userData);
+            setVirtualBalance(userData.virtual_balance);
+            router.push('/game/1');
+        }
+    }, [loginData, loginError, authLogin, setVirtualBalance, router]);
+
+    useEffect(() => {
+        if (registerData && registerData.message && !registerError) {
+            login(username, password);
+        }
+    }, [registerData, registerError, login, username, password]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
-        setIsLoading(true);
 
         try {
-            let response = isLogin
-                ? await login(username, password)
-                : await register(username, password);
-
-            if (response.error) {
-                setError(response.error);
-                return;
+            if (isLogin) {
+                await login(username, password);
+            } else {
+                await register(username, password);
             }
-
-            if (!isLogin && response.message === 'User created successfully') {
-                const loginResponse = await login(username, password);
-                if (loginResponse.error) {
-                    setError(loginResponse.error);
-                    return;
-                }
-                response = loginResponse;
-            }
-
-            if (!response.user || !response.token) {
-                setError('Données de connexion invalides');
-                return;
-            }
-            const userData = {
-                ...response.user,
-                is_admin: response.user.isAdmin || response.user.is_admin || false
-            };
-            delete userData.isAdmin;
-            authLogin(response.token, userData);
-            setVirtualBalance(userData.virtual_balance);
-            router.push('/game/1');
         } catch (err) {
-            console.error('Login error:', err);
+            console.error('Auth error:', err);
             setError('Une erreur est survenue. Veuillez réessayer.');
-        } finally {
-            setIsLoading(false);
         }
     };
+
+    const displayError = currentError?.message || error;
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-[#020c1b]">
@@ -100,9 +109,9 @@ export const Login = () => {
                         />
                     </div>
 
-                    {error && (
+                    {displayError && (
                         <div className="text-red-400 text-sm">
-                            {error}
+                            {displayError}
                         </div>
                     )}
 

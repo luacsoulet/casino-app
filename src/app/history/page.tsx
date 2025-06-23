@@ -1,48 +1,43 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useAuthStore } from '@/store/AuthStore';
 import { withAuth } from '@/middleware/withAuth';
-import { PlayHistory } from '@/utils/types';
+import { useHistory } from '@/utils/apiFonctions';
 
 function HistoryPage() {
     const { token } = useAuthStore();
-    const [plays, setPlays] = useState<PlayHistory[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [isError, setIsError] = useState(false);
+    const hasFetchedRef = useRef(false);
+
+    // Utilisation du nouveau hook
+    const { data: plays, error, isLoading, getHistory } = useHistory();
 
     useEffect(() => {
-        const fetchHistory = async () => {
-            try {
-                const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/plays/history`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-                if (!response.ok) throw new Error('Erreur lors de la récupération de l\'historique');
-                const data = await response.json();
-                setPlays(data);
-            } catch (error) {
-                setIsError(true);
-            } finally {
-                setIsLoading(false);
-            }
-        };
+        if (token && !hasFetchedRef.current) {
+            console.log('🔄 Récupération de l\'historique...');
+            getHistory(token);
+            hasFetchedRef.current = true;
+        }
+    }, [token, getHistory]);
 
-        fetchHistory();
+    // Reset the ref when token changes (user logout/login)
+    useEffect(() => {
+        if (!token) {
+            hasFetchedRef.current = false;
+        }
     }, [token]);
 
     return (
         <div className="min-h-screen flex flex-col items-center p-8 bg-[#020c1b]">
             <h1 className="text-4xl font-bold text-[#64ffda] mt-20 mb-8">Historique des parties</h1>
-            {isError && (
-                <div className="text-red-500">Une erreur est survenue lors du chargement de l'historique.</div>
+            {error && (
+                <div className="text-red-500">Une erreur est survenue lors du chargement de l'historique: {error.message}</div>
             )}
             {isLoading ? (
                 <div className="text-[#64ffda]">Chargement...</div>
             ) : (
                 <div className="w-full max-w-4xl flex flex-col gap-4">
-                    {plays.length > 0 ? plays.map((play) => (
+                    {plays && plays.length > 0 ? plays.map((play) => (
                         <div key={play.id} className="bg-white/5 p-4 rounded-lg flex justify-between items-center">
                             <div className="flex items-center">
                                 <span className="text-[#64ffda]">{play.game_name}</span>

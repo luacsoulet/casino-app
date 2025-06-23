@@ -1,55 +1,50 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import GameCard from "@/components/GameCard";
 import { HeroSection } from "@/components/HeroSection";
-import { getGames } from '@/utils/apiFonctions';
+import { useGames } from '@/utils/apiFonctions';
 import { Game } from '@/utils/types';
 import { useCache } from '@/hooks/useCache';
 
 export default function Home() {
   const { data: cachedGames, etag, updateCache } = useCache<Game[]>('games');
   const [games, setGames] = useState<Game[]>(cachedGames || []);
-  const [isError, setIsError] = useState(false);
-  const [isLoading, setIsLoading] = useState(!cachedGames);
-  const hasFetchedRef = useRef(false);
 
-  const fetchGames = useCallback(async () => {
+  const { data: gamesData, error: gamesError, isLoading, getGames } = useGames();
 
-    if (cachedGames && !hasFetchedRef.current) {
-      setGames(cachedGames);
-      setIsLoading(false);
-      hasFetchedRef.current = true;
-      return;
-    }
-
-    try {
-      const response = await getGames(etag);
-
-      if (response.notModified && cachedGames) {
+  useEffect(() => {
+    const fetchGames = async () => {
+      if (cachedGames && cachedGames.length > 0) {
         setGames(cachedGames);
         return;
       }
-      if (!response.notModified && response.data) {
-        updateCache(response.data, response.etag || '');
-        setGames(response.data);
+
+      try {
+        const response = await getGames(etag);
+
+        if (response && !response.notModified && response.data) {
+          updateCache(response.data, response.etag || '');
+          setGames(response.data);
+        } else if (response && response.notModified && cachedGames) {
+          setGames(cachedGames);
+        }
+      } catch (error) {
+        console.error('Erreur lors de la récupération des jeux:', error);
       }
-    } catch (error) {
-      setIsError(true);
-      console.error('Erreur lors de la récupération des jeux:', error);
-    } finally {
-      setIsLoading(false);
-      hasFetchedRef.current = true;
-    }
-  }, [cachedGames, etag, updateCache]);
+    };
+
+    fetchGames();
+  }, [cachedGames, etag, updateCache, getGames]);
+
 
   useEffect(() => {
-    if (!hasFetchedRef.current) {
-      fetchGames();
+    if (gamesData && gamesData.length > 0) {
+      setGames(gamesData);
     }
-  }, [fetchGames]);
+  }, [gamesData]);
 
-  if (isLoading) {
+  if (isLoading && games.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-[#64ffda] text-xl">Chargement...</div>
@@ -66,9 +61,9 @@ export default function Home() {
           <h2 className="text-4xl font-bold text-[#64ffda] text-center mb-12">
             Nos Jeux
           </h2>
-          {isError && (
+          {gamesError && (
             <div className="text-red-500 text-center mb-4">
-              Une erreur est survenue lors de la récupération des jeux.
+              Une erreur est survenue lors de la récupération des jeux: {gamesError.message}
             </div>
           )}
           <div className="flex items-center justify-center gap-8 flex-wrap max-w-7xl mx-auto">
