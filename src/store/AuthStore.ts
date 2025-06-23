@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { User } from '@/utils/types';
+import { User, UserWithToken } from '@/utils/types';
 import { persist } from 'zustand/middleware';
 import { useUserBalanceStore } from './UserStore';
 
@@ -8,7 +8,7 @@ interface AuthState {
     token: string | null;
     isLoading: boolean;
     isAuthenticated: boolean;
-    login: (token: string, user: User) => void;
+    login: (user: UserWithToken) => void;
     logout: () => void;
     setLoading: (loading: boolean) => void;
 }
@@ -20,14 +20,14 @@ export const useAuthStore = create<AuthState>()(
             token: null,
             isLoading: false,
             isAuthenticated: false,
-            login: (token: string, user: User) => {
+            login: (user: UserWithToken) => {
                 const normalizedUser = {
                     ...user,
                     is_admin: Boolean(user.is_admin)
                 };
                 set({
                     user: normalizedUser,
-                    token,
+                    token: user.token,
                     isAuthenticated: true,
                     isLoading: false
                 });

@@ -3,6 +3,18 @@ export interface User {
     username: string;
     virtual_balance: number;
     is_admin: boolean;
+    created_at: string;
+}
+
+export interface ApiUser {
+    id: number;
+    username: string;
+    virtual_balance: number;
+    isAdmin: boolean;
+}
+
+export interface UserWithToken extends User {
+    token: string;
 }
 
 export interface LoginCredentials {
@@ -55,4 +67,44 @@ export interface PlayHistory {
     result: boolean;
     created_at: string;
     game_name: string;
+}
+
+export interface LoginResponse {
+    token: string;
+    user: ApiUser;
+}
+
+export interface RegisterResponse {
+    message: string;
+}
+
+export interface PostResultResponse {
+    message?: string;
+    result: boolean;
+    earned: number;
+    virtual_balance: number;
+    play: {
+        id: number;
+        user_id: number;
+        game_id: number;
+        bet: number;
+        result: boolean;
+        created_at: string;
+    }
+}
+
+export interface UpdateBalanceResponse {
+    virtual_balance: number;
+    message?: string;
+}
+
+export interface DeleteUserResponse {
+    message: string;
+    success: boolean;
+}
+
+export interface PromoteUserResponse {
+    message: string;
+    success: boolean;
+    user: User;
 }
